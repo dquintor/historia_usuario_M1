@@ -5,7 +5,31 @@ from utils import (get_product_by_name,recalc_total_cost,recalc_total_cost_for_i
 
 CSV_PATH = "inventory.csv"
 
-"""INVENTORY PROGRAM """
+"""
+INVENTORY SYSTEM – DEVELOPMENT SUMMARY
+
+Week 1 (M1S1):
+    Implemented the basic product registration: name, price, and quantity
+    with type validation. Calculated total cost (price × quantity) and
+    printed formatted output.
+
+Week 2 (M1S2):
+    Added an interactive menu using conditionals and loops. Multiple products
+    stored in a list of dictionaries. Added functions for adding, showing,
+    and calculating basic statistics. Improved validation and structure.
+
+Week 3 (M1S3):
+    Modularized the project into app.py, utils.py, models.py, and data.py.
+    Completed full CRUD: add, show, search, update, delete.
+    Implemented advanced statistics (units, total value, most expensive,
+    highest stock). Added CSV persistence with robust validation,
+    error handling, and row-skipping for malformed entries.
+
+Final Result:
+    A fully modular, validated, and persistent inventory system ready for
+    extension into more advanced applications.
+"""
+
 
 # Global inventory list
 inventory = []
