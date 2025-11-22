@@ -69,13 +69,16 @@ Menu options (1–9):
 `build_product(name, quantity, price)`  
 Creates a standardized product dictionary:
 
+
+
 ```python
 {
   "name": name,
   "quantity": quantity,
   "price": price,
   "total_cost": price * quantity
-} ```
+}
+
 
 ### utils.py
 
