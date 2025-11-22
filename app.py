@@ -1,58 +1,65 @@
 from models import build_product
 from data import export_to_csv, import_from_csv, DEFAULT_PATH
-from utils import (
-    get_product_by_name,
-    recalc_total_cost,
-    recalc_total_cost_for_inventory,
-    print_product,
-    ensure_inventory_not_empty,
-)
+from utils import (get_product_by_name,recalc_total_cost,recalc_total_cost_for_inventory,print_product,ensure_inventory_not_empty,
+                   validate_price,validate_quantity, validate_product_name)
 
-# If you want an absolute path, use this:
 CSV_PATH = "inventory.csv"
 
-""" WEEK 1 INVENTORY PROGRAM """
+"""INVENTORY PROGRAM """
 
 # Global inventory list
 inventory = []
 
 
 def collect_data():
-    """Ask the user for product data with validations."""
-    collecting_data = True
-    while collecting_data:
+    """Collect product data from user input with validation.
+    
+    This function prompts interactively for product name, price, and quantity,
+    ensuring valid inputs before returning them:
+    - Product name: string with letters and spaces only, not empty.
+    - Product price: floating-point number > 0.
+    - Quantity: non-decimal integer > 0.
+    
+    Returns
+    -------
+    tuple
+        (name: str, quantity: int, price: float)
+    """
+    
+    name = None
+    price = None
+    quantity = None
+    
+    # Product name input and validation
+    while name is None:
         try:
-            name = str(input("Please enter the product name: ").strip()).capitalize()
-            if not name:
-                print("Product name can’t be empty. Please enter it to continue.")
-                continue
-            elif not all(c.isalpha() or c.isspace() for c in name):
-                print("Error. The product name must contain only letters and spaces. Please try again.")
-                continue
-            collecting_data = False
+            user_input = input("Please enter the product name: ")
+            name = validate_product_name(user_input)
+        except ValueError as e:
+            print(e)
         except KeyboardInterrupt:
-            print("Error. The value entered is not valid. Please check and try again.")
-
-    while True:
+            print("\nInput interrupted. Please try again.")
+    
+    # Product price input and validation
+    while price is None:
         try:
-            price = float(input("Enter the product price: "))
-            if price is None:
-                print("The price cannot be empty.")
-                continue
-            break
-        except (ValueError, KeyboardInterrupt):
-            print("Invalid value. Please enter a numeric value.")
-
-    while True:
+            user_input = input("Enter the product price: ")
+            price = validate_price(user_input)
+        except ValueError as e:
+            print(e)
+        except KeyboardInterrupt:
+            print("\nInput interrupted. Please try again.")
+    
+    # Product quantity input and validation
+    while quantity is None:
         try:
-            quantity = int(input("Enter the product quantity: "))
-            if quantity is None:
-                print("The quantity field cannot be empty.")
-                continue
-            break
-        except (ValueError, KeyboardInterrupt):
-            print("Invalid value. Please enter a non-decimal number.")
-
+            user_input = input("Enter the product quantity: ")
+            quantity = validate_quantity(user_input)
+        except ValueError as e:
+            print(e)
+        except KeyboardInterrupt:
+            print("\nInput interrupted. Please try again.")
+    
     return name, quantity, price
 
 
@@ -61,10 +68,29 @@ def stock_price(quantity, price):
     return price * quantity
 
 
-""" WEEK 2 """
 
 
 def validate_option(menu, message, menu_started=True, minimum=None, maximum=None):
+    """Validate user menu option input.
+    
+    Parameters
+    ----------
+    menu : str
+        The menu text to display.
+    message : str
+        The prompt message for user input.
+        menu_started : bool, optional
+        Whether the menu loop is active. Default is True.
+        minimum : int, optional
+        Minimum valid option value. Default is None.
+        maximum : int, optional
+        Maximum valid option value. Default is None.
+    
+    Returns
+    -------
+    int
+        The validated menu option selected by the user.
+        """
     while menu_started:
         try:
             print(menu)
@@ -81,6 +107,13 @@ def validate_option(menu, message, menu_started=True, minimum=None, maximum=None
 
 
 def menu():
+    """Display the menu and get a validated user option.
+    
+    Returns
+    -------
+    int
+        The validated menu option selected by the user."""
+    
     menu_text = (
         "\n---- Options Menu ----\n"
         "1. Add Product\n"
@@ -96,12 +129,13 @@ def menu():
     option = validate_option(menu_text, "Select an option (1-9): ", menu_started=True, minimum=1, maximum=9)
     return option
 
-
 def main():
+    """Main function to run the inventory management system.
+     Runs an interactive menu loop until the user chooses to exit."""
+    
     print("Welcome to the Product Inventory Management System!")
     menu_started = True
 
-    global inventory
 
     while menu_started:
         option = menu()
@@ -119,12 +153,12 @@ def main():
 
         elif option == 3:
             # Update product
-            update_product()
+            update_product(inventory)
             continue
 
         elif option == 4:
             # Delete product
-            delete_product()
+            delete_product(inventory)
             continue
 
         elif option == 5:
@@ -137,7 +171,12 @@ def main():
             total_value, total_quantity, most_expensive_product, most_stocked_product = calculate_statistics(
                 inventory
             )
-            show_statistics(total_value, total_quantity, most_expensive_product, most_stocked_product)
+            show_statistics(
+                total_value,
+                total_quantity,
+                most_expensive_product,
+                most_stocked_product,
+            )
             continue
 
         elif option == 7:
@@ -147,7 +186,11 @@ def main():
 
         elif option == 8:
             # Load from CSV (overwrite or merge inside import_from_csv)
-            inventory = import_from_csv(inventory, CSV_PATH)
+            new_inventory = import_from_csv(inventory, CSV_PATH)
+            if new_inventory is not inventory:
+                inventory.clear()
+                inventory.extend(new_inventory)
+
             continue
 
         elif option == 9:
@@ -157,16 +200,32 @@ def main():
 
 
 def add_product(name, quantity, price):
-    """Create a product and add it to the inventory."""
+    """Create a product and add it to the inventory.
+    
+    Parameters
+    ----------
+    name : str
+        The product name.
+    quantity : int
+        The product quantity.
+    price : float
+        The product price.
+        """
     global inventory
-    product = build_product(name, quantity, price)  # should already include total_cost; if not, helpers fix it
-    recalc_total_cost(product)  # ensure total_cost is correct
+    product = build_product(name, quantity, price)  
+    recalc_total_cost(product)  
     inventory.append(product)
     print(f"\n{quantity} units of the product {name} added to the inventory.\n")
 
 
 def show_inventory(inv):
-    """Print all products in the inventory."""
+    """Print all products in the inventory.
+    
+    parameters
+    ----------
+    inv : list
+        The inventory list of products."""
+        
     print("\n--- Product Inventory ---\n")
     if not ensure_inventory_not_empty(inv, "view the inventory"):
         print(inv)
@@ -177,7 +236,24 @@ def show_inventory(inv):
 
 
 def calculate_statistics(inv):
-    """Calculate basic inventory statistics."""
+    """Calculate basic inventory statistics.
+    parameters
+    ----------
+    inv : list
+        The inventory list of products.
+        
+    Returns
+    -------
+    tuple
+        total_inventory_value : float
+        Total value of all products in inventory.
+        total_products : int
+        Total number of product units in stock.
+        most_expensive_product : float or None
+        Price of the most expensive product, or None if inventory is empty.
+        most_stocked_product : int or None
+        Highest stock quantity of any product, or None if inventory is empty.
+            """
     if not ensure_inventory_not_empty(inv, "calculate statistics"):
         return 0, 0, None, None
 
@@ -192,6 +268,19 @@ def calculate_statistics(inv):
 
 
 def show_statistics(total_inventory_value, total_products, most_expensive_product, most_stocked_product):
+    """Display inventory statistics.
+    parameters
+    ----------
+    total_inventory_value : float
+        Total value of all products in inventory.
+    total_products : int
+        Total number of product units in stock.
+    most_expensive_product : float or None
+        Price of the most expensive product, or None if inventory is empty.
+    most_stocked_product : int or None
+        Highest stock quantity of any product, or None if inventory is empty.
+        """
+        
     print("\n --- Inventory Statistics ---\n")
     print(f"Total Inventory Value: {total_inventory_value}")
     print(f"Total Number of Units in Stock: {total_products}")
@@ -211,7 +300,12 @@ def show_statistics(total_inventory_value, total_products, most_expensive_produc
 
 
 def search_product(inv):
-    """Search for a product by name and show it."""
+    """Search for a product by name and show it.
+    parameters
+    ----------
+    inv : list
+        The inventory list of products."""
+        
     if not ensure_inventory_not_empty(inv, "search products"):
         return None
 
@@ -227,10 +321,14 @@ def search_product(inv):
     return None
 
 
-def update_product():
-    """Update price and/or quantity of an existing product."""
-    global inventory
-
+def update_product(inventory):
+    """Update a product's price and/or quantity by name.
+    parameters
+    ----------
+    inventory : list
+        The inventory list of products.
+        """
+        
     if not ensure_inventory_not_empty(inventory, "update a product"):
         return
 
@@ -246,40 +344,37 @@ def update_product():
 
     print("\nLeave any field empty to keep the current value.\n")
 
-    # --- update price ---
+    # Update price
     new_price_input = input("Enter new price (or press Enter to keep current): ").strip()
     if new_price_input:
         try:
-            new_price = float(new_price_input)
-            if new_price < 0:
-                print("Price cannot be negative. Keeping previous value.")
-            else:
-                product["price"] = new_price
-        except ValueError:
-            print("Invalid price. Keeping previous value.")
+            new_price = validate_price(new_price_input)
+            product["price"] = new_price
+        except ValueError as e:
+            print(e)
 
-    # --- update quantity ---
+    # Update quantity
     new_quantity_input = input("Enter new quantity (or press Enter to keep current): ").strip()
     if new_quantity_input:
         try:
-            new_quantity = int(new_quantity_input)
-            if new_quantity < 0:
-                print("Quantity cannot be negative. Keeping previous value.")
-            else:
-                product["quantity"] = new_quantity
-        except ValueError:
-            print("Invalid quantity. Keeping previous value.")
+            new_quantity = validate_quantity(new_quantity_input)
+            product["quantity"] = new_quantity
+        except ValueError as e:
+            print(e)
 
-    # Recalculate total_cost using helper
     recalc_total_cost(product)
 
     print("\nProduct updated successfully:")
     print_product(product)
 
 
-def delete_product():
-    """Delete a product from the inventory by name."""
-    global inventory
+def delete_product(inventory):
+    """Delete a product from the inventory by name.
+    parameters
+    ----------
+    inventory : list
+        The inventory list of products.
+        """
 
     if not ensure_inventory_not_empty(inventory, "delete a product"):
         return
@@ -294,13 +389,16 @@ def delete_product():
     print("\nProduct found:")
     print_product(product)
 
-    confirmation = input("Are you sure you want to delete this product? (Y/N): ").strip().upper()
+    confirmation = input(
+        "Are you sure you want to delete this product? (Y/N): "
+    ).strip().upper()
 
     if confirmation == "Y":
         inventory.remove(product)
         print(f"\nProduct '{product['name']}' has been removed successfully.")
     else:
         print("\nDeletion cancelled.")
+
 
 
 if __name__ == "__main__":
