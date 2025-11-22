@@ -78,7 +78,7 @@ Creates a standardized product dictionary:
   "price": price,
   "total_cost": price * quantity
 }
-
+```
 
 ### utils.py
 
