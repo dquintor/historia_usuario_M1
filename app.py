@@ -1,5 +1,5 @@
-from services import build_product
-from files import export_to_csv, import_from_csv, DEFAULT_PATH
+from models import build_product
+from data import export_to_csv, import_from_csv, DEFAULT_PATH
 from utils import (
     get_product_by_name,
     recalc_total_cost,
