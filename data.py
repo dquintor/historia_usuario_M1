@@ -4,28 +4,23 @@ import csv
 DEFAULT_PATH = "inventory.csv"
 
 
-# Save CSV
+# ====== TASK 4: Guardar CSV ======
 def export_to_csv(inventory, path=DEFAULT_PATH, include_header=True):
-    """Saves the inventory to a CSV file at the given path.
-    If include_header is True, writes the header row.
-    
-    parameters:
-    - inventory: list of product dicts
-    - path: file path to save the CSV
-    - include_header: whether to write the header row
-    
-    returns: None"""
+    """
+    Guarda el inventario en un archivo CSV.
+    Formato: nombre,precio,cantidad
+    """
     try:
         if not inventory:
-            print("Inventory is empty. No data to save.")
+            print("El inventario está vacío. No hay datos para guardar.")
             return
 
-        with open(path, 'w', newline='', encoding='utf-8-sig') as file:
+        with open(path, 'w', newline='', encoding='utf-8') as file:
             writer = csv.writer(file)
 
             if include_header:
-                # Header according to the requirements
-                writer.writerow(['name', 'price', 'quantity'])
+                # Encabezado según el enunciado
+                writer.writerow(['nombre', 'precio', 'cantidad'])
 
             for product in inventory:
                 writer.writerow([
@@ -34,54 +29,53 @@ def export_to_csv(inventory, path=DEFAULT_PATH, include_header=True):
                     product.get('quantity')
                 ])
 
-        print(f"Inventory saved to: {path}")
+        print(f"Inventario guardado en: {path}")
 
     except PermissionError:
-        print("Could not save file due to permission issues.")
+        print("No se pudo guardar el archivo por problemas de permisos.")
     except Exception as e:
-        print(f"An error occurred while saving the CSV: {e}")
+        print(f"Ocurrió un error al guardar el CSV: {e}")
 
 
+# (Opcional) alias con el nombre del enunciado
+def guardar_csv(inventario, ruta=DEFAULT_PATH, incluir_header=True):
+    export_to_csv(inventario, ruta, incluir_header)
 
-#Load CSV with overwrite/merge option
+
+# ====== TASK 5: Cargar CSV ======
 def import_from_csv(current_inventory, path=DEFAULT_PATH):
     """
-    Loads products from a CSV and either replaces or merges the current inventory.
+    Carga productos desde un CSV y reemplaza o fusiona el inventario actual.
 
-    Rules:
-    - Required header: name,price,quantity
-    - Each row must have exactly 3 columns
-    - price -> float >= 0
-    - quantity -> int >= 0
-    - Invalid rows are skipped and counted
-    Parameters:
-    - current_inventory: list of existing product dicts
-    - path: file path to load the CSV from
-    Returns:
-    - new inventory list if successful, else returns current_inventory
+    Reglas:
+    - Encabezado obligatorio: nombre,precio,cantidad
+    - Cada fila: 3 columnas
+    - precio -> float >= 0
+    - cantidad -> int >= 0
+    - Filas inválidas se omiten y se cuentan
     """
     loaded_inventory = []
     invalid_rows = 0
 
     try:
-        with open(path, 'r') as file:
+        with open(path, 'r', encoding='utf-8') as file:
             reader = csv.reader(file)
             header = next(reader, None)
 
             if header is None:
-                print("The CSV file is empty.")
+                print("El archivo CSV está vacío.")
                 return current_inventory
 
-            expected_header = ['name', 'price', 'quantity']
+            expected_header = ['nombre', 'precio', 'cantidad']
             normalized_header = [col.strip().lower() for col in header]
 
-            # Validate header
+            # Validar encabezado
             if normalized_header != expected_header:
-                print("Invalid header. Expected: name,price,quantity.")
+                print("Encabezado inválido. Se esperaba: nombre,precio,cantidad.")
                 return current_inventory
 
             for row in reader:
-                # Skip completely empty lines
+                # Saltar líneas totalmente vacías
                 if not row or all(col.strip() == "" for col in row):
                     continue
 
@@ -90,42 +84,38 @@ def import_from_csv(current_inventory, path=DEFAULT_PATH):
                     continue
 
                 try:
-                    name = row[0].strip()
-                    price = float(row[1])
-                    quantity = int(row[2])
+                    nombre = row[0].strip()
+                    precio = float(row[1])
+                    cantidad = int(row[2])
 
-                    if price < 0 or quantity < 0:
+                    if precio < 0 or cantidad < 0:
                         raise ValueError
 
-                    # calculate total_cost for each loaded product
-                    total_cost = price * quantity
-
                     loaded_inventory.append({
-                        'name': name,
-                        'price': price,
-                        'quantity': quantity,
-                        'total_cost': total_cost
+                        'name': nombre,
+                        'price': precio,
+                        'quantity': cantidad
                     })
 
                 except ValueError:
                     invalid_rows += 1
 
         if not loaded_inventory:
-            print("No valid products found in the CSV file.")
+            print("No se encontraron productos válidos en el archivo.")
             return current_inventory
 
-        # Ask the user if they want to overwrite or merge the inventory
+        # Preguntar al usuario si sobrescribe o fusiona
         while True:
-            choice = input("Overwrite current inventory? (Y/N): ").strip().upper()
-            if choice in ('Y', 'N'):
+            choice = input("¿Sobrescribir inventario actual? (S/N): ").strip().upper()
+            if choice in ('S', 'N'):
                 break
-            print("Invalid option. Enter Y or N.")
+            print("Opción inválida. Responde S o N.")
 
-        if choice == 'Y':
-            action = "overwrite"
+        if choice == 'S':
+            action = "reemplazo"
             final_inventory = loaded_inventory
         else:
-            action = "merge"
+            action = "fusión"
             final_inventory = current_inventory.copy()
 
             for new_product in loaded_inventory:
@@ -135,31 +125,32 @@ def import_from_csv(current_inventory, path=DEFAULT_PATH):
                 )
 
                 if existing:
-                    #  add quantity and update price if different
+                    # Política: sumar cantidad y actualizar precio al nuevo si difiere
                     existing['quantity'] += new_product['quantity']
                     if existing['price'] != new_product['price']:
                         existing['price'] = new_product['price']
                 else:
                     final_inventory.append(new_product)
 
-        # Recalculate total_cost for *all* products in the final inventory
-        for product in final_inventory:
-            product['total_cost'] = product['price'] * product['quantity']
-
-        print(f"Inventory loaded from: {path}")
-        print(f"Products loaded: {len(loaded_inventory)}")
-        print(f"Invalid rows skipped: {invalid_rows}")
-        print(f"Action performed: {action}")
+        print(f"Inventario cargado desde: {path}")
+        print(f"Productos cargados: {len(loaded_inventory)}")
+        print(f"Filas inválidas omitidas: {invalid_rows}")
+        print(f"Acción realizada: {action}")
 
         return final_inventory
 
     except FileNotFoundError:
-        print("The specified file was not found.")
+        print("El archivo especificado no fue encontrado.")
     except UnicodeDecodeError:
-        print("Encoding error. Make sure it is a valid CSV file.")
+        print("Error de codificación. Asegúrate de que sea un archivo CSV válido.")
     except Exception as e:
-        print(f"An unexpected error occurred while loading the file: {e}")
+        print(f"Ocurrió un error inesperado al cargar el archivo: {e}")
 
     return current_inventory
 
 
+# (Opcional) alias con el nombre del enunciado
+def cargar_csv(ruta=DEFAULT_PATH, inventario_actual=None):
+    if inventario_actual is None:
+        inventario_actual = []
+    return import_from_csv(inventario_actual, ruta)
