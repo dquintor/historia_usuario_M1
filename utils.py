@@ -6,6 +6,10 @@ def validate_product_name(user_input):
     - Not empty after stripping spaces
     - Only letters and spaces
     - Capitalize first letter
+    parameters:
+    - user_input: str, raw input from user
+    returns:
+    - normalized name string
     """
     name = user_input.strip().capitalize()
 
@@ -26,6 +30,11 @@ def validate_price(user_input):
     - Not empty
     - Numeric (float)
     - Greater than 0
+    parameters:
+    - user_input: str, raw input from user
+    returns:
+    - price as float
+    
     """
     text = user_input.strip()
 
@@ -48,6 +57,11 @@ def validate_quantity(user_input):
     - Not empty
     - Integer (no decimals)
     - Greater than 0
+    parameters:
+    - user_input: str, raw input from user
+    returns:
+    - quantity as int
+    
     """
     text = user_input.strip()
 
@@ -62,29 +76,50 @@ def validate_quantity(user_input):
     return quantity_value
 
 
+
 def get_product_by_name(inventory, name):
-    """Return the product dict with the given name, or None if not found."""
+    """Return the product dict with the given name, or None if not found.
+    parameters:
+    - inventory: list of product dicts
+    - name: str, product name to search for
+    returns:
+    - product dict if found, else None
+    """
     normalized_name = name.strip().capitalize()
     return next((p for p in inventory if p["name"] == normalized_name), None)
 
-
 def recalc_total_cost(product):
-    """Ensure product has a correct total_cost field."""
+    """Ensure product has a correct total_cost field.
+    parameters:
+    - product: dict with keys name, price, quantity
+    returns:
+    - total_cost as float
+    """
     price = product.get("price", 0)
     quantity = product.get("quantity", 0)
     product["total_cost"] = price * quantity
     return product["total_cost"]
 
-
 def recalc_total_cost_for_inventory(inventory):
+    """Recalculate total_cost for all products in inventory.
+    parameters:
+    - inventory: list of product dicts
+    returns: None
+    """
     for product in inventory:
         recalc_total_cost(product)
-
-
 def display_result(name, quantity, price, total_cost=None):
     """
     Returns a formatted string with product info.
     If total_cost is not provided, it is calculated as price * quantity.
+    parameters:
+    - name: str, product name
+    - quantity: int, product quantity
+    - price: float, product price
+    - total_cost: float or None, total cost of the product
+    returns:
+    - formatted string with product details
+    
     """
     if total_cost is None:
         total_cost = price * quantity
@@ -95,33 +130,36 @@ def display_result(name, quantity, price, total_cost=None):
     )
     return product_info
 
-
 def print_product(product, index=None):
     """
     Print a single product nicely formatted.
     If index is provided, show 'Product {index}:' before details.
+    parameters:
+    - product: dict with keys name, quantity, price, total_cost
+    - index: int or None, optional product index for display
+    returns: None
     """
     total_cost = product.get("total_cost")
     header = f"\nProduct {index}:" if index is not None else "\nProduct:"
-    print(
-        header
-        + display_result(
-            product["name"],
-            product["quantity"],
-            product["price"],
-            total_cost,
-        )
-    )
-
+    print(header + display_result(
+        product["name"],
+        product["quantity"],
+        product["price"],
+        total_cost
+    ))
 
 def ensure_inventory_not_empty(inventory, action_description="perform this action"):
     """
     Returns True if inventory is NOT empty.
     If empty, prints a message and returns False.
+    parameters:
+    - inventory: list of product dicts
+    - action_description: str, description of the action user wanted to do
+    returns:
+    - True if inventory not empty, else False
+    
     """
     if not inventory:
-        print(
-            f"Inventory is empty. Please add products before trying to {action_description}."
-        )
+        print(f"Inventory is empty. Please add products before trying to {action_description}.")
         return False
     return True
